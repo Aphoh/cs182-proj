@@ -105,12 +105,12 @@ def main():
     ckpt = torch.load('latest.pt')
     model.load_state_dict(ckpt['net'])
     criterion = nn.CrossEntropyLoss()
-    lr = 1e-2
+    lr = 5e-2
     for i in range(num_epochs):
         model.train()
         if(i%40==0):
             lr *= .1
-        optim = torch.optim.Adam(model.parameters(),lr=lr)
+        optim = torch.optim.SGD(model.parameters(),lr=lr,momentum=0.9   )
         train_total, train_correct = 0,0
         for idx, (inputs, targets) in enumerate(train_loader):
             inputs = inputs.cuda()
