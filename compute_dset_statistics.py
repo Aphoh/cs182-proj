@@ -8,6 +8,11 @@ from torch.utils.data import DataLoader
 import torchvision
 import torchvision.transforms as transforms
 
+"""
+Mean: tensor([0.4802, 0.4481, 0.3975])
+Stdev: tensor([0.2296, 0.2263, 0.2255])
+"""
+
 def main():
     data_dir = pathlib.Path('./data/tiny-imagenet-200')
     data_transforms = transforms.Compose([transforms.ToTensor()])
