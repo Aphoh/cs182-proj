@@ -57,8 +57,18 @@ class Val_Dataset(Dataset):
     def __len__(self):
         return len(self.anns)
 
+def get_n_params(model):
+        pp=0
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                nn=1
+                for s in list(param.size()):
+                    nn = nn*s
+                pp += nn
+        return pp
+
 def main():
-    model_name = 'experiment1'
+    model_name = 'experiment_RN18_SGD_M.9_WD1e-3'
     writer = SummaryWriter('runs/' + model_name)
     # Create a pytorch dataset
     data_dir = pathlib.Path('./data/tiny-imagenet-200')
@@ -71,8 +81,8 @@ def main():
     im_height = 64
     im_width = 64
     num_epochs = 120
-    mean = [0.485, 0.456, 0.406]
-    std = [0.229, 0.224, 0.225]
+    mean = [0.4802, 0.4481, 0.3975]
+    std = [0.4802, 0.4481, 0.3975]
     
     val_transforms = transforms.Compose([
         transforms.ToTensor(),
@@ -96,16 +106,18 @@ def main():
 
     # Create a simple modeli
 
-
-    model = EfficientNet.from_name('efficientnet-b0').cuda()
+    model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=False).cuda()
+    #model = EfficientNet.from_name('efficientnet-b0').cuda()
+    print(get_n_params(model))
     criterion = nn.CrossEntropyLoss()
-    lr = 5e-2
+    lr = .5 
     for i in range(num_epochs):
         model.train()
         if(i%40==0):
             lr *= .1
-        optim = torch.optim.SGD(model.parameters(),lr=lr,momentum=0.9)
+        optim = torch.optim.SGD(model.parameters(),lr=lr,momentum=.9,weight_decay=1e-3)
         train_total, train_correct = 0,0
+        running_loss = 0.0
         for idx, (inputs, targets) in enumerate(train_loader):
             split_s = inputs[0].size(0)
             inputs = torch.cat(inputs,0).cuda()
@@ -121,6 +133,7 @@ def main():
             loss += 12 * (F.kl_div(p_mixture, p_clean, reduction='batchmean') +
                   F.kl_div(p_mixture, p_aug1, reduction='batchmean') +
                   F.kl_div(p_mixture, p_aug2, reduction='batchmean')) / 3
+            running_loss += loss.item()
             loss.backward()
             optim.step()
             _, predicted = logits_clean.max(1)
@@ -131,6 +144,9 @@ def main():
         torch.save({
             'net': model.state_dict(),
         }, './models/' + model_name +'.pt')
+        writer.add_scalar('Train Accuracy', float(train_correct)/float(train_total),i)
+        writer.add_scalar('Train Loss', running_loss, i)
+        
         model.eval()
         val_total, val_correct = 0,0
         running_loss = 0.0
