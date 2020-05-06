@@ -70,30 +70,20 @@ def get_n_params(model):
         return pp
 
 
-def ricap_modification(inputs, targets, ricap_beta=0.3):
-    I_x, I_y = input.size()[2:]
+def accuracy(output, target, topk=(1,)):
+    with torch.no_grad():
+        maxk = max(topk)
+        batch_size = target.size(0)
 
-    w = int(np.round(I_x * np.random.beta(ricap_beta, ricap_beta)))
-    h = int(np.round(I_y * np.random.beta(ricap_beta, ricap_beta)))
-    w_ = [w, I_x - w, w, I_x - w]
-    h_ = [h, h, I_y - h, I_y - h]
+        _, pred = output.topk(maxk, 1, True, True)
+        pred = pred.t()
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
 
-    cropped_images = {}
-    c_ = {}
-    W_ = {}
-    for k in range(4):
-        idx = torch.randperm(input.size(0))
-        x_k = np.random.randint(0, I_x - w_[k] + 1)
-        y_k = np.random.randint(0, I_y - h_[k] + 1)
-        cropped_images[k] = input[idx][:, :, x_k:x_k + w_[k], y_k:y_k + h_[k]]
-        c_[k] = target[idx].cuda()
-        W_[k] = w_[k] * h_[k] / (I_x * I_y)
-
-    patched_images = torch.cat(
-        (torch.cat((cropped_images[0], cropped_images[1]), 2),
-        torch.cat((cropped_images[2], cropped_images[3]), 2)),
-    3)
-    return patched_images, 
+        res = []
+        for k in topk:
+            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
+            res.append(correct_k.mul_(100.0 / batch_size))
+        return res
 
 
 def main():
@@ -112,6 +102,7 @@ def main():
     num_epochs = 120
     mean = [0.4802, 0.4481, 0.3975]
     std = [0.2296, 0.2263, 0.2255]
+    ricap_beta = 0.3
 
     val_transforms = transforms.Compose([
         transforms.ToTensor(),
@@ -125,9 +116,9 @@ def main():
       [transforms.ToTensor(),
        transforms.Normalize(mean, std)])
 
-    train_set = torchvision.datasets.ImageFolder(data_dir / 'train', train_transform)
+    train_set_init = torchvision.datasets.ImageFolder(data_dir / 'train', train_transform)
     #train_set = AugMixDataset(train_set_init, preprocess,augmentations.augmentations_all)
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
+    train_loader = torch.utils.data.DataLoader(train_set_init, batch_size=batch_size,
                                                shuffle=True, num_workers=4, pin_memory=True)
 
     val_set = Val_Dataset(val_transforms,train_set_init.class_to_idx)
@@ -154,8 +145,8 @@ def main():
         	### RICAP START ###
             I_x, I_y = input.size()[2:]
 
-            w = int(np.round(I_x * np.random.beta(args.ricap_beta, args.ricap_beta)))
-            h = int(np.round(I_y * np.random.beta(args.ricap_beta, args.ricap_beta)))
+            w = int(np.round(I_x * np.random.beta(ricap_beta, ricap_beta)))
+            h = int(np.round(I_y * np.random.beta(ricap_beta, ricap_beta)))
             w_ = [w, I_x - w, w, I_x - w]
             h_ = [h, h, I_y - h, I_y - h]
 
