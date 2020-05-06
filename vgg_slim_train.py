@@ -108,7 +108,7 @@ def main():
 
     # Create a simple modeli
 
-    lr = 0.01
+    lr = 0.001
     model = vgg_slim.vgg16_slim().cuda()
     optim = torch.optim.SGD(model.parameters(),lr=lr, momentum=.9, weight_decay=5e-4)
     sched = ReduceLROnPlateau(optim, 'min', patience=3, factor=0.2, verbose=True)
