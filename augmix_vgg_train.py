@@ -24,7 +24,19 @@ from PIL import Image
 import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn.functional as F
+import argparse
 
+parser = argparse.ArgumentParser(description="train vgg with augmix")
+parser.add_argument('--epochs', default=120, type=int, metavar='N',
+                    help='number of total epochs to run')
+parser.add_argument('-b', '--batch-size', default=32, type=int,
+                    metavar='N', help='mini-batch size (default: 256)')
+parser.add_argument('--lr', '--learning-rate', default=0.000125, type=float,
+                    metavar='LR', help='initial learning rate')
+parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
+                    help='momentum')
+parser.add_argument('--weight-decay', '--wd', default=5e-4, type=float,
+                    metavar='W', help='weight decay (default: 1e-4)')
 class Val_Dataset(Dataset):
     def __init__(self, transform,indexer, anns='./data/tiny-imagenet-200/val/val_annotations.txt', path='./data/tiny-imagenet-200/val/images/',):
         self.path = path
@@ -69,6 +81,7 @@ def get_n_params(model):
         return pp
 
 def main():
+    args = parser.parse_args()
     model_name = 'experiment_augmix_VGG16_baseline'
     writer = SummaryWriter('runs/' + model_name)
     # Create a pytorch dataset
@@ -78,10 +91,10 @@ def main():
     print('Discovered {} images'.format(image_count))
 
     # Create the training data generator
-    batch_size = 32
+    batch_size = args.batch_size
     im_height = 64
     im_width = 64
-    num_epochs = 120
+    num_epochs = args.epochs
     mean = [0.4802, 0.4481, 0.3975]
     std = [0.4802, 0.4481, 0.3975]
 
@@ -107,9 +120,11 @@ def main():
 
     # Create a simple modeli
 
-    lr = 0.000125
+    lr = args.lr
+    mom = args.momentum
+    wd = args.weight_decay
     model = torch.hub.load('pytorch/vision:v0.6.0', 'vgg16', pretrained=False).cuda()
-    optim = torch.optim.SGD(model.parameters(),lr=lr, momentum=.9, weight_decay=5e-4)
+    optim = torch.optim.SGD(model.parameters(),lr=lr, momentum=mom, weight_decay=wd)
     sched = ReduceLROnPlateau(optim, 'min')
 
     print(get_n_params(model))
