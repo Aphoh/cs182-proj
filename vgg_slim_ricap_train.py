@@ -187,7 +187,7 @@ def main():
             'net': model.state_dict(),
         }, './models/' + model_name +'.pt')
 
-        writer.add_scalar('Train Accuracy', float(train_correct)/float(train_total),i)
+        writer.add_scalar('Train Accuracy', acc, i)
         writer.add_scalar('Train Loss', running_loss, i)
 
         model.eval()
