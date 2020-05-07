@@ -143,7 +143,7 @@ def main():
         for idx, (inputs, targets) in enumerate(train_loader):
 
         	### RICAP START ###
-            I_x, I_y = input.size()[2:]
+            I_x, I_y = inputs.size()[2:]
 
             w = int(np.round(I_x * np.random.beta(ricap_beta, ricap_beta)))
             h = int(np.round(I_y * np.random.beta(ricap_beta, ricap_beta)))
@@ -154,11 +154,11 @@ def main():
             c_ = {}
             W_ = {}
             for k in range(4):
-                idx = torch.randperm(input.size(0))
+                idx = torch.randperm(inputs.size(0))
                 x_k = np.random.randint(0, I_x - w_[k] + 1)
                 y_k = np.random.randint(0, I_y - h_[k] + 1)
-                cropped_images[k] = input[idx][:, :, x_k:x_k + w_[k], y_k:y_k + h_[k]]
-                c_[k] = target[idx].cuda()
+                cropped_images[k] = inputs[idx][:, :, x_k:x_k + w_[k], y_k:y_k + h_[k]]
+                c_[k] = targets[idx].cuda()
                 W_[k] = w_[k] * h_[k] / (I_x * I_y)
 
             patched_images = torch.cat(
