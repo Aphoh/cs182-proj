@@ -140,7 +140,7 @@ def main():
 
         train_total, train_correct = 0,0
         running_loss = 0.0
-        for idx, (inputs, targets) in enumerate(train_loader):
+        for idx_outer, (inputs, targets) in enumerate(train_loader):
 
         	### RICAP START ###
             I_x, I_y = inputs.size()[2:]
@@ -179,7 +179,7 @@ def main():
             optim.step()
 
             print("\r", end='')
-            print(f'training {100 * idx / len(train_loader):.2f}%: {acc:.3f}', end='')
+            print(f'training {100 * idx_outer / len(train_loader):.2f}%: {acc:.3f}', end='')
 
 
         torch.save({
