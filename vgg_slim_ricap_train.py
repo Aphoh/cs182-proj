@@ -171,6 +171,7 @@ def main():
             loss = sum([W_[k] * criterion(output, c_[k]) for k in range(4)])
 
             acc = sum([W_[k] * accuracy(output, c_[k])[0] for k in range(4)])
+            acc = acc.item()
 
             ### RICAP END ###
 
