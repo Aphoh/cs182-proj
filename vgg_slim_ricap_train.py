@@ -179,7 +179,7 @@ def main():
             optim.step()
 
             print("\r", end='')
-            print('training {}: {}'.format(100 * idx / len(train_loader), acc))
+            print(f'training {100 * idx / len(train_loader):.2f}%: {acc:.3f}', end='')
 
 
         torch.save({
@@ -203,7 +203,7 @@ def main():
             val_total += targets.size(0)
             val_correct += predicted.eq(targets).sum().item()
             print("\r", end='')
-            print('validation {}: {}'.format(100 * idx / len(val_loader), val_correct / val_total))
+            print(f'validation {100 * idx / len(val_loader):.2f}%: {val_correct / val_total:.3f}', end='')
 
         writer.add_scalar('Validation Accuracy', float(val_correct)/float(val_total), i)
         writer.add_scalar('Validation Loss', running_loss, i)
