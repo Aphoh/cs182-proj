@@ -179,7 +179,7 @@ def main():
             optim.step()
 
             print("\r", end='')
-            print(f'training {100 * idx / len(train_loader):.2f}%: {acc:.3f}', end='')
+            print('training {}: {}'.format(100 * idx / len(train_loader), acc))
 
 
         torch.save({
