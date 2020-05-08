@@ -97,7 +97,7 @@ def get_n_params(model):
 def main():
     args = parser.parse_args()
     model_name = args.name
-    writer = SummaryWriter(args.eventdir + model_name)
+    writer = SummaryWriter(args.eventdir / model_name)
     # Create a pytorch dataset
     data_dir = pathlib.Path(args.datadir)
     image_count = len(list(data_dir.glob('**/*.JPEG')))
@@ -194,7 +194,7 @@ def main():
 
         torch.save({
             'net': model.state_dict(),
-        }, args.savedir + model_name +'.pt')
+        }, args.savedir / model_name +'.pt')
 
         writer.add_scalar('Train Accuracy', float(train_correct)/float(train_total),i)
         writer.add_scalar('Train Loss', running_loss, i)
