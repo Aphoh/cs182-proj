@@ -96,7 +96,7 @@ def main():
     print('Discovered {} images'.format(image_count))
 
     # Create the training data generator
-    batch_size = 32
+    batch_size = 64
     im_height = 64
     im_width = 64
     num_epochs = 120
