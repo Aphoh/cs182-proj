@@ -25,6 +25,7 @@ import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn.functional as F
 import argparse
+import vgg_slim
 
 parser = argparse.ArgumentParser(description="train vgg with augmix")
 parser.add_argument('--epochs', default=120, type=int, metavar='N',
@@ -46,6 +47,8 @@ parser.add_argument('--name', default='experiment1', type=str, help='The name of
 parser.add_argument('--savedir', default='./models', type=str, help='The directory to save the model')
 
 parser.add_argument('--eventdir', default='./runs', type=str, help='The directory to save events')
+
+parser.add_argument('--model-name', default='vgg16_slim', type=str, help="The name of the model (vgg16, vgg16_slim, etc)")
 
 
 class Val_Dataset(Dataset):
@@ -107,7 +110,7 @@ def main():
     im_width = 64
     num_epochs = args.epochs
     mean = [0.4802, 0.4481, 0.3975]
-    std = [0.4802, 0.4481, 0.3975]
+    std = [0.2296, 0.2263, 0.2255]
 
     val_transforms = transforms.Compose([
         transforms.ToTensor(),
@@ -134,7 +137,15 @@ def main():
     lr = args.lr
     mom = args.momentum
     wd = args.weight_decay
-    model = torch.hub.load('pytorch/vision:v0.6.0', 'vgg16', pretrained=False).cuda()
+
+    model = None
+    if args.model_name == 'vgg16_slim':
+        model = vgg_slim.vgg16_slim().cuda()
+    else if args.model_name == 'vgg16':
+        model = vgg_slim.vgg16().cuda()
+    else:
+        print("Unknown model name: {}".format(args.model_name))
+
     optim = torch.optim.SGD(model.parameters(),lr=lr, momentum=mom, weight_decay=wd)
     sched = ReduceLROnPlateau(optim, 'min')
 
@@ -148,24 +159,24 @@ def main():
         for idx, (inputs, targets) in enumerate(train_loader):
             split_s = inputs[0].size(0)
             if(args.augmix_off):
-            	inputs = inputs[0]
+                inputs = inputs[0].cuda()
             else:
 
-            	inputs = torch.cat(inputs,0).cuda()
+                inputs = torch.cat(inputs,0).cuda()
             targets = targets.cuda()
             optim.zero_grad()
             outputs = model(inputs)
             if(args.augmix_off):
-            	logits_clean = outputs
-           	else:
-           		logits_clean, logits_aug1, logits_aug2 = torch.split(outputs, split_s)
+                logits_clean = outputs
+            else:
+                logits_clean, logits_aug1, logits_aug2 = torch.split(outputs, split_s)
             loss = criterion(logits_clean, targets)
             if(not args.augmix_off):
-            	p_clean = F.softmax(logits_clean, dim=1)
-            	p_aug1 = F.softmax(logits_aug1, dim=1)
-            	p_aug2 = F.softmax(logits_aug2, dim=1)
-            	p_mixture = torch.clamp((p_clean + p_aug1 + p_aug2) / 3., 1e-7, 1).log()
-            	loss += 12 * (F.kl_div(p_mixture, p_clean, reduction='batchmean') +
+                p_clean = F.softmax(logits_clean, dim=1)
+                p_aug1 = F.softmax(logits_aug1, dim=1)
+                p_aug2 = F.softmax(logits_aug2, dim=1)
+                p_mixture = torch.clamp((p_clean + p_aug1 + p_aug2) / 3., 1e-7, 1).log()
+                loss += 12 * (F.kl_div(p_mixture, p_clean, reduction='batchmean') +
                   F.kl_div(p_mixture, p_aug1, reduction='batchmean') +
                   F.kl_div(p_mixture, p_aug2, reduction='batchmean')) / 3
             running_loss += loss.item()
