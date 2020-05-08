@@ -141,7 +141,7 @@ def main():
     model = None
     if args.model_name == 'vgg16_slim':
         model = vgg_slim.vgg16_slim().cuda()
-    else if args.model_name == 'vgg16':
+    elif args.model_name == 'vgg16':
         model = vgg_slim.vgg16().cuda()
     else:
         print("Unknown model name: {}".format(args.model_name))
