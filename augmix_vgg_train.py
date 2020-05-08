@@ -222,7 +222,7 @@ def main():
 
         #TinyImageNet-C
         val_total, val_correct = 0,0
-        running_loss_c = 0.0
+        running_loss = 0.0
         for idx, (inputs, targets) in enumerate(val_loader_c):
 
             inputs = inputs.cuda()
