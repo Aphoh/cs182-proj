@@ -26,6 +26,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torch.nn.functional as F
 import argparse
 import vgg_slim
+from tiny_imagenet_c import get_tiny_imagenet_c, all_corruptions
 
 parser = argparse.ArgumentParser(description="train vgg with augmix")
 parser.add_argument('--epochs', default=120, type=int, metavar='N',
@@ -97,7 +98,7 @@ def get_n_params(model):
 def main():
     args = parser.parse_args()
     model_name = args.name
-    writer = SummaryWriter(args.eventdir / model_name)
+    writer = SummaryWriter(pathlib.Path(args.eventdir)/ model_name)
     # Create a pytorch dataset
     data_dir = pathlib.Path(args.datadir)
     image_count = len(list(data_dir.glob('**/*.JPEG')))
@@ -147,6 +148,11 @@ def main():
         model = vgg_slim.vgg16_slim().cuda()
     elif args.model_name == 'vgg16':
         model = vgg_slim.vgg16().cuda()
+    elif args.model_name == 'efficientnet-b0':
+        model = EfficientNet.from_name('efficientnet-b0').cuda()
+    elif args.model_name == 'resnet-18':
+        model = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=False).cuda()
+
     else:
         print("Unknown model name: {}".format(args.model_name))
 
@@ -194,7 +200,7 @@ def main():
 
         torch.save({
             'net': model.state_dict(),
-        }, args.savedir / model_name +'.pt')
+        }, args.savedir + '/' + model_name +'.pt')
 
         writer.add_scalar('Train Accuracy', float(train_correct)/float(train_total),i)
         writer.add_scalar('Train Loss', running_loss, i)
