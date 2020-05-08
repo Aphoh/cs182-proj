@@ -37,6 +37,17 @@ parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=5e-4, type=float,
                     metavar='W', help='weight decay (default: 1e-4)')
+parser.add_argument('--augmix-off', action='store_true', help='Whether or not to use augmix')
+
+parser.add_argument('--datadir', default='./data/tiny-imagenet-200', type=str, help='where the data is stored')
+
+parser.add_argument('--name', default='experiment1', type=str, help='The name of the experiment')
+
+parser.add_argument('--savedir', default='./models', type=str, help='The directory to save the model')
+
+parser.add_argument('--eventdir', default='./runs', type=str, help='The directory to save events')
+
+
 class Val_Dataset(Dataset):
     def __init__(self, transform,indexer, anns='./data/tiny-imagenet-200/val/val_annotations.txt', path='./data/tiny-imagenet-200/val/images/',):
         self.path = path
@@ -82,10 +93,10 @@ def get_n_params(model):
 
 def main():
     args = parser.parse_args()
-    model_name = 'experiment_augmix_VGG16_baseline'
-    writer = SummaryWriter('runs/' + model_name)
+    model_name = args.name
+    writer = SummaryWriter(args.eventdir + model_name)
     # Create a pytorch dataset
-    data_dir = pathlib.Path('./data/tiny-imagenet-200')
+    data_dir = pathlib.Path(args.datadir)
     image_count = len(list(data_dir.glob('**/*.JPEG')))
     CLASS_NAMES = np.array([item.name for item in (data_dir / 'train').glob('*')])
     print('Discovered {} images'.format(image_count))
@@ -136,17 +147,25 @@ def main():
         running_loss = 0.0
         for idx, (inputs, targets) in enumerate(train_loader):
             split_s = inputs[0].size(0)
-            inputs = torch.cat(inputs,0).cuda()
+            if(args.augmix_off):
+            	inputs = inputs[0]
+            else:
+
+            	inputs = torch.cat(inputs,0).cuda()
             targets = targets.cuda()
             optim.zero_grad()
             outputs = model(inputs)
-            logits_clean, logits_aug1, logits_aug2 = torch.split(outputs, split_s)
+            if(args.augmix_off):
+            	logits_clean = outputs
+           	else:
+           		logits_clean, logits_aug1, logits_aug2 = torch.split(outputs, split_s)
             loss = criterion(logits_clean, targets)
-            p_clean = F.softmax(logits_clean, dim=1)
-            p_aug1 = F.softmax(logits_aug1, dim=1)
-            p_aug2 = F.softmax(logits_aug2, dim=1)
-            p_mixture = torch.clamp((p_clean + p_aug1 + p_aug2) / 3., 1e-7, 1).log()
-            loss += 12 * (F.kl_div(p_mixture, p_clean, reduction='batchmean') +
+            if(not args.augmix_off):
+            	p_clean = F.softmax(logits_clean, dim=1)
+            	p_aug1 = F.softmax(logits_aug1, dim=1)
+            	p_aug2 = F.softmax(logits_aug2, dim=1)
+            	p_mixture = torch.clamp((p_clean + p_aug1 + p_aug2) / 3., 1e-7, 1).log()
+            	loss += 12 * (F.kl_div(p_mixture, p_clean, reduction='batchmean') +
                   F.kl_div(p_mixture, p_aug1, reduction='batchmean') +
                   F.kl_div(p_mixture, p_aug2, reduction='batchmean')) / 3
             running_loss += loss.item()
@@ -160,7 +179,7 @@ def main():
 
         torch.save({
             'net': model.state_dict(),
-        }, './models/' + model_name +'.pt')
+        }, args.savedir + model_name +'.pt')
 
         writer.add_scalar('Train Accuracy', float(train_correct)/float(train_total),i)
         writer.add_scalar('Train Loss', running_loss, i)
