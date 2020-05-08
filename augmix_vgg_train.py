@@ -131,6 +131,10 @@ def main():
     val_loader = torch.utils.data.DataLoader(val_set, batch_size=batch_size,
                                                shuffle=False, num_workers=4, pin_memory=True)
 
+    val_set_c = get_tiny_imagenet_c(val_transforms)
+    val_loader_c = torch.utils.data.DataLoader(val_set_c, batch_size=batch_size,
+                                               shuffle=False, num_workers=4, pin_memory=True)
+
 
     # Create a simple modeli
 
@@ -215,6 +219,25 @@ def main():
         writer.add_scalar('Validation Loss', running_loss, i)
 
         sched.step(running_loss)
+
+        #TinyImageNet-C
+        val_total, val_correct = 0,0
+        running_loss_c = 0.0
+        for idx, (inputs, targets) in enumerate(val_loader_c):
+
+            inputs = inputs.cuda()
+            targets = targets.cuda()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            running_loss += loss.item()
+            _, predicted = outputs.max(1)
+            val_total += targets.size(0)
+            val_correct += predicted.eq(targets).sum().item()
+            print("\r", end='')
+            print(f'corrupted validation {100 * idx / len(val_loader):.2f}%: {val_correct / val_total:.3f}', end='')
+
+        writer.add_scalar('Corrupted Validation Accuracy', float(val_correct)/float(val_total), i)
+        writer.add_scalar('Corrupted Validation Loss', running_loss, i)
 
     writer.close()
 
