@@ -41,6 +41,8 @@ parser.add_argument('--weight-decay', '--wd', default=5e-4, type=float,
                     metavar='W', help='weight decay (default: 1e-4)')
 parser.add_argument('--augmix-off', action='store_true', help='Whether or not to use augmix')
 
+parser.add_argument('--max-checkpoint', action='store_true', help='Whether or not to checkpoint each epoch')
+
 parser.add_argument('--datadir', default='./data/tiny-imagenet-200', type=str, help='where the data is stored')
 
 parser.add_argument('--name', default='experiment1', type=str, help='The name of the experiment')
@@ -197,11 +199,15 @@ def main():
             train_correct += predicted.eq(targets).sum().item()
             print("\r", end='')
             print(f'training {100 * idx / len(train_loader):.2f}%: {train_correct / train_total:.3f}', end='')
+        if(args.max_checkpoint):
 
-        torch.save({
-            'net': model.state_dict(),
-        }, args.savedir + '/' + model_name +'.pt')
-
+            torch.save({
+                'net': model.state_dict(),
+            }, args.savedir + '/' + model_name + '_'+ str(i) + '.pt')
+        else:
+            torch.save({
+                'net': model.state_dict(),
+            }, args.savedir + '/' + model_name + '.pt')
         writer.add_scalar('Train Accuracy', float(train_correct)/float(train_total),i)
         writer.add_scalar('Train Loss', running_loss, i)
 
