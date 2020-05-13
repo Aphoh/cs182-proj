@@ -80,9 +80,8 @@ def get_val(model):
         _, predicted = outputs.max(1)
         val_total += targets.size(0)
         val_correct += predicted.eq(targets).sum().item()
-	return val_correct / val_total
 
-
+    return val_correct/val_total
 def add_votes(model, weight):
     # Create a pytorch dataset
     data_dir = pathlib.Path(args.datadir) # SET THIS TO THE DATADIR
@@ -132,8 +131,7 @@ def add_votes(model, weight):
         _, predicted = outputs.max(1)
         val_total += targets.size(0)
         val_correct += predicted.eq(targets).sum().item()
-
-	return val_correct / val_total
+    return val_correct/val_total
 
 
 # try the fibonacci numbers up to like 55 for good results 
@@ -160,48 +158,47 @@ def alpha_priority(names, models, accuracies, new_model, alpha=0):
 
 def main():
 
-	model_dir = './models'
-        model_dict = {}
-	model_type = 'vgg16-slim'
+    model_dir = './models'
+    model_type = 'vgg16-slim'
+
+    names = []
+
+    models = []
+    accs = []
+    for model_name in [f for f in os.listdir(model_dir) if 'experiment_augmix_vgg16_slim_checkpoint_' in f]:
+        
+
+        model = create_model(model_type)
+        model.eval()
+        models.append(model)
+        names.append(model_name)
+        pretrained_dict = torch.load(model_dir + model_name)
+        weight_dict = model.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in weight_dict}
+        weight_dict.update(pretrained_dict)
+        model.load_state_dict(weight_dict)
+
+        #model.load_state_dict(torch.load(model_dir + model_name))
+        accuracy = get_val(model)
+        accs.append(accuracy)
+        model_dict[model_name] = {'params': model.named_parameters(), 'acc': accuracy}
 
 
-	names = []
-	models = []
-	accs = []
-	for model_name in [f for f in os.listdir(model_dir) if 'experiment_augmix_vgg16_slim_checkpoint_' in f]:
-            print('evaluating model ' + str(model_name))
+    res = {}
+    outputs = None
+    for alpha in range(5):
+        new_model = create_model(model_type)
 
-	    model = create_model(model_type)
-            model.eval()
-            models.append(model)
-            names.append(model_name)
-	    pretrained_dict = torch.load(model_dir + model_name)
-	    weight_dict = model.state_dict()
-	    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in weight_dict}
-	    weight_dict.update(pretrained_dict)
-	    model.load_state_dict(weight_dict)
+        # PARAMETER AVERAGING
+        model_dict, model = alpha_priority(names, models, accs, new_model, alpha)
+        res['param_avg_alpha_'.format(alpha)]: get_val(model)
 
-	    #model.load_state_dict(torch.load(model_dir + model_name))
-	    accuracy = get_val(model)
-	    accs.append(accuracy)
-	    model_dict[model_name] = {'params': model.named_parameters(), 'acc': accuracy}
+        # # VOTING
+        # for k, v in model_dict.items():
+        #     weight = v['alpha_'.format(alpha)]
 
-
-	res = {}
-	outputs = None
-	for alpha in range(5):
-		new_model = create_model(model_type)
-
-		# PARAMETER AVERAGING
-		model_dict, model = alpha_priority(names, models, accs, new_model, alpha)
-		res['param_avg_alpha_'.format(alpha)]: get_val(model)
-
-		# # VOTING
-		# for k, v in model_dict.items():
-		# 	weight = v['alpha_'.format(alpha)]
-
-	print(res)
-	return res
+    print(res)
+    return res
 
 
 if __name__ == '__main__':
