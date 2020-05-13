@@ -80,7 +80,6 @@ def get_val(model):
         _, predicted = outputs.max(1)
         val_total += targets.size(0)
         val_correct += predicted.eq(targets).sum().item()
-
 	return val_correct / val_total
 
 
@@ -161,21 +160,21 @@ def alpha_priority(names, models, accuracies, new_model, alpha=0):
 
 def main():
 
-	model_dir = ... # SET THE MODEL DIR TO THE FOLDER WITH THE MODELS
-	model_dict = {}
+	model_dir = './models'
+        model_dict = {}
 	model_type = 'vgg16-slim'
 
 
 	names = []
 	models = []
 	accs = []
-	for model_name in [f for f in os.listdir(model_dir) if f != 'experiment1.pt' and f[0] != '.']:
-        print('evaluating model ' + str(model_name))
+	for model_name in [f for f in os.listdir(model_dir) if 'experiment_augmix_vgg16_slim_checkpoint_' in f]:
+            print('evaluating model ' + str(model_name))
 
-		model = create_model(model_type)
-		model.eval()
-		models.append(model)
-		names.append(model_name)
+	    model = create_model(model_type)
+            model.eval()
+            models.append(model)
+            names.append(model_name)
 	    pretrained_dict = torch.load(model_dir + model_name)
 	    weight_dict = model.state_dict()
 	    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in weight_dict}
