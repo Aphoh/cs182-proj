@@ -4,7 +4,7 @@ from PIL import Image
 import numpy as np
 import torch
 import torchvision.transforms as transforms
-from model import Net
+from vgg_slim import vgg16_slim
 
 
 def main():
@@ -13,8 +13,8 @@ def main():
     CLASSES = sorted([item.name for item in data_dir.glob('*')])
     im_height, im_width = 64, 64
 
-    ckpt = torch.load('latest.pt')
-    model = Net(len(CLASSES), im_height, im_width)
+    ckpt = torch.load('models/experiment_final.pt', map_location=torch.device('cpu'))
+    model = vgg16_slim()
     model.load_state_dict(ckpt['net'])
     model.eval()
 
